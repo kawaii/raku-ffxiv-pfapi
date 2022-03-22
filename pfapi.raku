@@ -2,7 +2,7 @@ use Cro::HTTP::Router;
 use Cro::HTTP::Server;
 use JSON::Class;
 use Red;
-use UUID;
+use LibUUID;
 
 my $GLOBAL::RED-DB = database "Pg", :host<localhost>, :database<pfapi>, :user<pfapi>, :password<password>;
 
@@ -24,25 +24,30 @@ model User is table<pfapi_users> {
 Character.^create-table: :if-not-exists;
 User.^create-table: :if-not-exists;
 
-my $application = route {
-    get -> 'character', $id {
-        request-body -> %request {
-            if %request<auth> {
-                my $user = User.^load(uuid => %request<auth>);
-                if $user {
-                    my $character = Character.^load($id);
-                    note "[{ DateTime.now }] Performing lookup on $id";
-                    if $character {
-                        content 'application/json', $character.to-json;
-                    } else {
-                        not-found;
-                    }
+class Auth does Cro::HTTP::Middleware::Conditional {
+    method process(Supply $requests) {
+        supply whenever $requests -> $request {
+            whenever $request.body -> %body {
+                if User.^load(uuid => %body<auth>) {
+                    emit $request;
                 } else {
-                    forbidden;
+                    note "[{ DateTime.now }] Failed authentication from { $request.connection.peer-host } (Auth: { %body<auth> })";
+                    emit Cro::HTTP::Response.new(:$request, :403status);
                 }
-            } else {
-                forbidden;
             }
+        }
+    }
+}
+
+my $application = route {
+    before Auth;
+    get -> 'character', $id {
+        my $character = Character.^load($id);
+        note "[{ DateTime.now }] Performing lookup on $id";
+        if $character {
+            content 'application/json', $character.to-json;
+        } else {
+            not-found;
         }
     }
 }
