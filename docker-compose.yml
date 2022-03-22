@@ -1,0 +1,13 @@
+services:
+  postgres:
+    environment:
+      POSTGRES_DB: pfapi
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: pfapi
+    image: postgres:14-alpine
+    ports:
+    - 127.0.0.1:5432:5432/tcp
+    volumes:
+    - ${PWD}/data/postgres/data:/var/lib/postgresql/data:rw
+
+version: '3.8'
