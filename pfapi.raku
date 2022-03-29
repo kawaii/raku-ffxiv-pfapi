@@ -51,7 +51,7 @@ class Auth does Cro::HTTP::Middleware::Conditional {
 
 my $application = route {
     before Auth;
-    get -> 'character', $id {
+    get -> 'character', Int $id {
         my $character = Character.^load($id);
         note "[{ DateTime.now }] Performing lookup on $id";
         if $character {
