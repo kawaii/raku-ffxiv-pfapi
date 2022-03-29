@@ -7,5 +7,5 @@ insert into pfapi_characters values (35383842, -2, 'test comment', now(), 496805
 ```
 
 ```sh
-http --json GET :10000/character/35383842 auth=b241c27c-1404-43fa-970c-920c9f5a0268
+http GET :10000/character/35383842 Auth:b241c27c-1404-43fa-970c-920c9f5a0268
 ```
