@@ -26,16 +26,25 @@ User.^create-table: :if-not-exists;
 
 class Auth does Cro::HTTP::Middleware::Conditional {
     method process(Supply $requests) {
+        my sub pass($request) {
+            emit $request
+        }
+        my sub fail($request, $auth?) {
+            note "[{ DateTime.now }] Failed authentication from { $request.connection.peer-host } (Auth: { $auth // 'N/A' })";
+            emit Cro::HTTP::Response.new(:$request, :403status)
+        }
         supply whenever $requests -> $request {
-            whenever $request.body -> %body {
-                my $auth = try { UUID.new(%body<auth>) };
-                if $auth and User.^load(uuid => $auth) {
-                    emit $request;
-                } else {
-                    note "[{ DateTime.now }] Failed authentication from { $request.connection.peer-host } (Auth: { %body<auth> })";
-                    emit Cro::HTTP::Response.new(:$request, :403status);
+            with $request.header('Auth') -> $auth {
+                my $is-auth = try { UUID.new($auth) };
+                if $is-auth and User.^load(uuid => $auth) {
+                    pass($request);
                 }
+                else {
+                    fail($request, $auth);
+                }
+                next;
             }
+            fail($request);
         }
     }
 }
