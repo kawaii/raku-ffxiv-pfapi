@@ -14,6 +14,14 @@ model Character is table<pfapi_characters> does JSON::Class {
     has Int $.author is column{ :type<bigint> };
 }
 
+model Encounter is table<pfapi_encounters> does JSON::Class {
+    has Str $.series is id;
+    has Int $.zone-id is id;
+    has Int $.territory-type is id;
+    has @.encounter-id is column{ :type<integer[]> };
+    has Str $.title is column;
+}
+
 model User is table<pfapi_users> {
     has UUID $.uuid is id;
     has Str $.username is id;
@@ -22,6 +30,7 @@ model User is table<pfapi_users> {
 }
 
 Character.^create-table: :if-not-exists;
+Encounter.^create-table: :if-not-exists;
 User.^create-table: :if-not-exists;
 
 class Auth does Cro::HTTP::Middleware::Conditional {
@@ -59,6 +68,10 @@ my $application = route {
         } else {
             not-found;
         }
+    }
+    get -> 'encounters' {
+        my $encounters = Encounter.^all;
+        content 'application/json', ($encounters but JSON::Class).to-json;;
     }
 }
 
