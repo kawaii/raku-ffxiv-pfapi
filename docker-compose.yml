@@ -10,4 +10,9 @@ services:
     volumes:
     - ${PWD}/data/postgres/data:/var/lib/postgresql/data:rw
 
+  redis:
+    image: redis:7-alpine
+    ports:
+    - 127.0.0.1:6379:6379/tcp
+
 version: '3.8'

@@ -2,9 +2,12 @@ use Cro::HTTP::Router;
 use Cro::HTTP::Server;
 use JSON::Class;
 use Red;
+use Redis::Async;
 use LibUUID;
+use Terminal::ANSIColor;
 
 my $GLOBAL::RED-DB = database "Pg", :host<localhost>, :database<pfapi>, :user<pfapi>, :password<password>;
+my $redis = Redis::Async.new("localhost:6379");
 
 model Character is table<pfapi_characters> does JSON::Class {
     has Int $.id is id;
@@ -58,13 +61,29 @@ class Auth does Cro::HTTP::Middleware::Conditional {
     }
 }
 
+sub character-lookup(Int :$id) {
+    # check the cache first
+    my Bool $cached = True;
+    my $character = $redis.get($id);
+    # check the database if we didn't find it in the cache
+    if !$character {
+        $cached = False;
+        $character = Character.^load($id).to-json;
+        # cache the result we got from the database for 30 minutes
+        if $character { $redis.setex($id, 1800, $character); }
+    }
+    my ($color, $state) = $cached ?? ('red', '[HIT]') !! ('blue', '[MISS]');
+    note "[{ DateTime.now }]" ~ color($color)," $state " ~ color('reset'), "Performing lookup on $id";
+    # return the lookup result
+    return $character;
+}
+
 my $application = route {
     before Auth;
     get -> 'character', Int $id {
-        my $character = Character.^load($id);
-        note "[{ DateTime.now }] Performing lookup on $id";
+        my $character = character-lookup(:$id);
         if $character {
-            content 'application/json', $character.to-json;
+            content 'application/json', $character;
         } else {
             not-found;
         }
