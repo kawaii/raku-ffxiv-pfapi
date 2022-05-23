@@ -72,11 +72,8 @@ sub character-lookup(Int :$id) {
         # cache the result we got from the database for 30 minutes
         if $character { $redis.setex($id, 1800, $character); }
     }
-    if $cached {
-        note "[{ DateTime.now }]" ~ color('red')," [HIT] Performing lookup on $id", color('reset');
-    } else {
-        note "[{ DateTime.now }]" ~ color('blue')," [MISS] Performing lookup on $id", color('reset');
-    }
+    my ($color, $state) = $cached ?? ('red', '[HIT]') !! ('blue', '[MISS]');
+    note "[{ DateTime.now }]" ~ color($color)," $state " ~ color('reset'), "Performing lookup on $id";
     # return the lookup result
     return $character;
 }
