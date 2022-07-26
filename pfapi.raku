@@ -6,8 +6,8 @@ use Redis::Async;
 use LibUUID;
 use Terminal::ANSIColor;
 
-my $GLOBAL::RED-DB = database "Pg", :host<localhost>, :database<pfapi>, :user<pfapi>, :password<password>;
-my $redis = Redis::Async.new("localhost:6379");
+my $GLOBAL::RED-DB = database "Pg", :host(%*ENV<PFAPI_DB_HOST>), :database(%*ENV<PFAPI_DB_NAME>), :user(%*ENV<PFAPI_DB_USER>), :password(%*ENV<PFAPI_DB_PASSWORD>);
+my $redis = Redis::Async.new(%*ENV<PFAPI_REDIS_HOST>);
 
 model Character is table<pfapi_characters> does JSON::Class {
     has Int $.id is id;
